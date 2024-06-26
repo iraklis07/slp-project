@@ -24,7 +24,7 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:2" # This is crucial for reproduc
 
 
 SUPPORTED_MODELS = [
-    'LF_DNN', 'EF_LSTM', 'TFN', 'LMF', 'MFN', 'Graph_MFN', 'MFM',
+    'LF_DNN', 'EF_LSTM', 'TFN', 'LMF', 'MFN', 'Graph_MFN', 'MFM', 'MMLATCH',
     'MulT', 'MISA', 'BERT_MAG', 'MLF_DNN', 'MTFN', 'MLMF', 'Self_MM', 'MMIM'
 ]
 SUPPORTED_DATASETS = ['MOSI', 'MOSEI', 'SIMS']
