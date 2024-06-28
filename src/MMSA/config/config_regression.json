@@ -1628,5 +1628,13 @@
         "batch_size":64
       }
     }
+  },
+  "mmlatch":{
+    "commonParams": {
+
+    },
+    "datasetParams": {
+      "mosei": {}
+    }
   }
 }
