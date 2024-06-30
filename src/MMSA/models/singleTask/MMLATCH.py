@@ -7,6 +7,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch.utils.checkpoint import checkpoint
 from typing import Optional, Any, cast, Callable
 
+__all__ = ['MMLATCH']
 
 def calc_scores(dk):
     def fn(q, k):
@@ -874,13 +875,24 @@ class AVTClassifier(nn.Module):
 
         self.classifier = nn.Linear(self.encoder.out_size, num_classes)
 
-    def forward(self, inputs):
+    def forward(self, text, audio, vision, lengths):
         out = self.encoder(
-            inputs["text"], inputs["audio"], inputs["visual"], inputs["lengths"]
+            text, audio, vision, lengths
         )
 
+        return self.classifier(out)
+    
+    
+class MMLATCH(nn.Module):
+    def __init__(self, args):
+        super(MMLATCH, self).__init__()
+
+        self.model = AVTClassifier(args)
+
+    def forward(self, text, audio, vision):
         res = {
-            'M' : self.classifier(out)
+            # TODO: self.model needs 'lengths' as well
+            'M' : self.model(text, audio, vision)
         }
 
         return res

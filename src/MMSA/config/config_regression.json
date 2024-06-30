@@ -1631,10 +1631,27 @@
   },
   "mmlatch":{
     "commonParams": {
-
+      "text_input_size": 300,
+      "audio_input_size": 74,
+      "visual_input_size": 35,
+      "projection_size": 100,
+      "text_layers": 1,
+      "audio_layers": 1,
+      "visual_layers": 1,
+      "bidirectional": true,
+      "encoder_type": "lstm",
+      "dropout": 0.2,
+      "attention": true,
+      "feedback": true,
+      "feedback_type": "learnable_sequence_mask"
     },
     "datasetParams": {
-      "mosei": {}
+      "mosei": {
+        "learning_rate" : 5e-4,
+        "patience": 10,
+        "batch_size": 32,
+        "num_workers": 1
+      }
     }
   }
 }
