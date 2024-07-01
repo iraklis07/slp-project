@@ -1,4 +1,4 @@
-from MMSA import MMSA_run, MMSA_test
+from src.MMSA.run import MMSA_run
 from torch import cuda
 import torch
 
