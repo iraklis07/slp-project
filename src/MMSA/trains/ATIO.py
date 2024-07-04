@@ -24,6 +24,7 @@ class ATIO():
             'mfm': MFM,
             'mmim': MMIM,
             'cenet':CENET,
+            'mmlatch': MMLATCH,
             # multi-task
             'mtfn': MTFN,
             'mlmf': MLMF,
