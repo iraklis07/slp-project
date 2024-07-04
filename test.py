@@ -6,4 +6,4 @@ print(torch.version.cuda)
 print(cuda.is_available())
 
 # run LMF on MOSI with default hyper parameters
-MMSA_run('mmlatch', 'mosei', seeds=[1111, 1112, 1113], gpu_ids=[0])
+MMSA_run('mmlatch', 'mosi', seeds=[1111, 1112, 1113], gpu_ids=[0])

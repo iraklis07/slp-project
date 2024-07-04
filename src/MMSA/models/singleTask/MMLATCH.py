@@ -208,7 +208,7 @@ class RNN(nn.Module):
         self.hidden_size = hidden_size
         self.batch_first = batch_first
         self.merge_bi = merge_bi
-        self.rnn_type = rnn_type.lower()
+        self.rnn_type = rnn_type[0].lower()
 
         self.out_size = hidden_size
 
@@ -834,7 +834,8 @@ class AVTEncoder(nn.Module):
 
         return fused
 
-
+# This is not used in the MMSA framework.
+# The class MMLATCH below is a modified version of it.
 class AVTClassifier(nn.Module):
     def __init__(
         self,
@@ -881,18 +882,53 @@ class AVTClassifier(nn.Module):
         )
 
         return self.classifier(out)
-    
-    
+
+
 class MMLATCH(nn.Module):
     def __init__(self, args):
         super(MMLATCH, self).__init__()
+        self.text_input_size = args.text_input_size
+        self.audio_input_size = args.audio_input_size
+        self.visual_input_size = args.visual_input_size
+        self.projection_size = args.projection_size
+        self.text_layers = args.text_layers
+        self.audio_layers = args.audio_layers
+        self.visual_layers = args.visual_layers
+        self.bidirectional = args.bidirectional
+        self.dropout = args.dropout
+        self.encoder_type = args.encoder_type
+        self.attention = args.attention
+        self.feedback = args.feedback
+        self.feedback_type = args.feedback_type
+        self.device = args.device
+        self.num_classes = args.num_classes
+    
+        self.encoder = AVTEncoder(
+            text_input_size = self.text_input_size,
+            audio_input_size = self.audio_input_size,
+            visual_input_size = self.visual_input_size,
+            projection_size = self.projection_size,
+            text_layers = self.text_layers,
+            audio_layers = self.audio_layers,
+            visual_layers = self.visual_layers,
+            bidirectional = self.bidirectional,
+            dropout = self.dropout,
+            encoder_type = self.encoder_type,
+            attention = self.attention,
+            feedback = self.feedback,
+            feedback_type = self.feedback_type,
+            device = self.device
+        )
 
-        self.model = AVTClassifier(args)
+        self.classifier = nn.Linear(self.encoder.out_size, self.num_classes)
 
-    def forward(self, text, audio, vision):
+    def forward(self, text, audio, vision, lengths):
+        out = self.encoder(
+            text, audio, vision, lengths
+        )
+        
         res = {
-            # TODO: self.model needs 'lengths' as well
-            'M' : self.model(text, audio, vision)
+            'M': self.classifier(out)
         }
 
         return res
