@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from ...utils import MetricsTop, dict_to_str
 
-logger = logging.getLogger('MMLATCH')
+logger = logging.getLogger('MMSA')
 
 class MMLATCH():
     def __init__(self,args):
@@ -51,6 +51,26 @@ class MMLATCH():
             iter = 0
             with tqdm(dataloader['train']) as td:
                 for batch_data in td:
+                    """
+                    print(len(batch_data['raw_text']))
+                    print(len(batch_data['audio_lengths']))
+                    print(len(batch_data['vision_lengths']))
+                    """
+
+                    lengths = {}
+                    if not self.args.need_data_aligned:
+                        lengths['text'] = torch.tensor(
+                            [batch_data['text'].shape[1]] * batch_data['text'].shape[0]
+                            ).to(self.args.device)
+                        lengths['audio'] = batch_data['audio_lengths'].to(self.args.device)
+                        lengths['vision'] = batch_data['vision_lengths'].to(self.args.device)
+                    else:
+                        lengths['text'] = torch.tensor(
+                            [batch_data['text'].shape[1]] * batch_data['text'].shape[0]
+                            ).to(self.args.device)
+                        lengths['audio'] = lengths['text']
+                        lengths['vision'] = lengths['text']
+                    
                     iter +=1
                     vision = batch_data['vision'].to(self.args.device)
                     audio = batch_data['audio'].to(self.args.device)
@@ -61,7 +81,15 @@ class MMLATCH():
                     else:
                         labels = labels.view(-1, 1)
                     # forward
-                    outputs = model(text, audio, vision)['M']
+                    
+                    """print("Vision shape:", vision.shape)
+                    print(audio[0])
+                    print("Audio shape:", audio.shape)
+                    print("Text shape:", text.shape)
+                    print("Labels shape:",labels.shape)
+                    print(labels)"""
+
+                    outputs = model(text, audio, vision, lengths)['M']
                     # compute loss
                     loss = self.criterion(outputs, labels)
                     train_loss += loss.item()
@@ -69,11 +97,11 @@ class MMLATCH():
                     y_true.append(labels.cpu())
                     # backward
                     loss.backward()
-                    if iter % self.accumulation_steps == 0:
+                    if iter % self.args.accumulation_steps == 0:
                         optimizer.step()  # type: ignore
                         optimizer.zero_grad()
 
-                if iter % self.accumulation_steps == 0:
+                if iter % self.args.accumulation_steps == 0:
                         optimizer.step()  # type: ignore
                         # optimizer.zero_grad()
 
@@ -108,7 +136,7 @@ class MMLATCH():
                 epoch_results['test'].append(test_results)
 
             # Early stop    
-            if epochs - best_epoch >= self.args.early_stop:
+            if epochs - best_epoch >= self.args.patience:
                 return epoch_results if return_epoch_results else None
 
     def do_test(self, model, dataloader, mode="VAL", return_sample_results=False):
@@ -128,6 +156,20 @@ class MMLATCH():
         with torch.no_grad():
             with tqdm(dataloader) as td:
                 for batch_data in td:
+                    lengths = {}
+                    if not self.args.need_data_aligned:
+                        lengths['text'] = torch.tensor(
+                            [batch_data['text'].shape[1]] * batch_data['text'].shape[0]
+                            ).to(self.args.device)
+                        lengths['audio'] = batch_data['audio_lengths'].to(self.args.device)
+                        lengths['vision'] = batch_data['vision_lengths'].to(self.args.device)
+                    else:
+                        lengths['text'] = torch.tensor(
+                            [batch_data['text'].shape[1]] * batch_data['text'].shape[0]
+                            ).to(self.args.device)
+                        lengths['audio'] = lengths['text']
+                        lengths['vision'] = lengths['text']
+
                     vision = batch_data['vision'].to(self.args.device)
                     audio = batch_data['audio'].to(self.args.device)
                     text = batch_data['text'].to(self.args.device)
@@ -136,7 +178,7 @@ class MMLATCH():
                         labels = labels.view(-1).long()
                     else:
                         labels = labels.view(-1, 1)
-                    outputs = model(text, audio, vision)
+                    outputs = model(text, audio, vision, lengths)
 
                     if return_sample_results:
                         ids.extend(batch_data['id'])

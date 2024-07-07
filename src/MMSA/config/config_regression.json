@@ -1631,7 +1631,7 @@
   },
   "mmlatch":{
     "commonParams": {
-      "need_data_aligned": false,
+      "need_data_aligned": true,
       "need_model_aligned": false
     },
     "datasetParams": {
@@ -1639,8 +1639,9 @@
         "learning_rate" : 5e-4,
         "patience": 10,
         "batch_size": 32,
+        "accumulation_steps": 1,
         "num_workers": 1,
-        "text_input_size": 300,
+        "text_input_size": 768,
         "audio_input_size": 74,
         "visual_input_size": 35,
         "projection_size": 100,
@@ -1658,8 +1659,9 @@
         "learning_rate" : 5e-4,
         "patience": 10,
         "batch_size": 32,
+        "accumulation_steps": 1,
         "num_workers": 1,
-        "text_input_size": 300,
+        "text_input_size": 768,
         "audio_input_size": 5,
         "visual_input_size": 20,
         "projection_size": 100,

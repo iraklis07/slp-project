@@ -183,7 +183,7 @@ class PackSequence(nn.Module):
         x = pack_padded_sequence(
             x, lengths, batch_first=self.batch_first, enforce_sorted=False
         )
-        lengths = lengths[x.sorted_indices]
+        lengths = lengths[x.sorted_indices.to("cpu")]
         return x, lengths
 
 
@@ -377,8 +377,8 @@ class FeedbackUnit(nn.Module):
         self.get_mask = mask_fn[self.mask_type]
 
     def _learnable_sequence_mask(self, y, z, lengths=None):
-        oy, _, _ = self.mask1(y, lengths)
-        oz, _, _ = self.mask2(z, lengths)
+        oy, _, _ = self.mask1(y, lengths[0])
+        oz, _, _ = self.mask2(z, lengths[1])
 
         lg = (torch.sigmoid(oy) + torch.sigmoid(oz)) * 0.5
 
@@ -438,9 +438,9 @@ class Feedback(nn.Module):
         )
 
     def forward(self, low_x, low_y, low_z, hi_x, hi_y, hi_z, lengths=None):
-        x = self.f1(low_x, hi_y, hi_z, lengths=lengths)
-        y = self.f2(low_y, hi_x, hi_z, lengths=lengths)
-        z = self.f3(low_z, hi_x, hi_y, lengths=lengths)
+        x = self.f1(low_x, hi_y, hi_z, lengths=[lengths['audio'], lengths['vision']])
+        y = self.f2(low_y, hi_x, hi_z, lengths=[lengths['text'], lengths['vision']])
+        z = self.f3(low_z, hi_x, hi_y, lengths=[lengths['text'], lengths['audio']])
 
         return x, y, z
 
@@ -520,7 +520,7 @@ class AttRnnFuser(nn.Module):
 
     def forward(self, txt, au, vi, lengths):
         att = self.att_fuser(txt, au, vi)  # B x L x 7 * D
-        out = self.rnn(att, lengths)  # B x L x 2 * D
+        out = self.rnn(att, lengths['text'])  # B x L x 2 * D
 
         return out
 
@@ -813,9 +813,9 @@ class AVTEncoder(nn.Module):
             )
 
     def _encode(self, txt, au, vi, lengths):
-        txt = self.text(txt, lengths)
-        au = self.audio(au, lengths)
-        vi = self.visual(vi, lengths)
+        txt = self.text(txt, lengths['text'])
+        au = self.audio(au, lengths['audio'])
+        vi = self.visual(vi, lengths['vision'])
 
         return txt, au, vi
 
@@ -901,7 +901,8 @@ class MMLATCH(nn.Module):
         self.feedback = args.feedback
         self.feedback_type = args.feedback_type
         self.device = args.device
-        self.num_classes = args.num_classes
+
+        output_dim = args.num_classes if args.train_mode == "classification" else 1
     
         self.encoder = AVTEncoder(
             text_input_size = self.text_input_size,
@@ -920,7 +921,7 @@ class MMLATCH(nn.Module):
             device = self.device
         )
 
-        self.classifier = nn.Linear(self.encoder.out_size, self.num_classes)
+        self.classifier = nn.Linear(self.encoder.out_size, output_dim)
 
     def forward(self, text, audio, vision, lengths):
         out = self.encoder(
