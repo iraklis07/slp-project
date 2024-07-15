@@ -169,7 +169,6 @@ class MMLATCH():
                             ).to(self.args.device)
                         lengths['audio'] = lengths['text']
                         lengths['vision'] = lengths['text']
-
                     vision = batch_data['vision'].to(self.args.device)
                     audio = batch_data['audio'].to(self.args.device)
                     text = batch_data['text'].to(self.args.device)

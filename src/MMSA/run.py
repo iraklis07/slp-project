@@ -287,6 +287,7 @@ def MMSA_test(
     feature_path: str, 
     # seeds: list = [], 
     gpu_id: int = 0, 
+    idx: int = 0
 ):
     """Test MSA models on a single sample.
 
@@ -317,6 +318,13 @@ def MMSA_test(
     args['device'] = device
     with open(feature_path, "rb") as f:
         feature = pickle.load(f)
+    feature = {k: v[idx] for k, v in zip(feature['test'].keys(), feature['test'].values())}
+    print(feature)
+    print(feature['text'].shape)
+    print("Text:", [1 if f.any() else 0 for f in feature['text'] ])
+    print("Audio:", [1 if f.any() else 0 for f in feature['audio'] ])
+    print("Vision:", [1 if f.any() else 0 for f in feature['vision'] ])
+    print("Last tokens:", feature['text'][-12:])
     args['feature_dims'] = [feature['text'].shape[1], feature['audio'].shape[1], feature['vision'].shape[1]]
     args['seq_lens'] = [feature['text'].shape[0], feature['audio'].shape[0], feature['vision'].shape[0]]
     model = AMIO(args)
@@ -346,10 +354,20 @@ def MMSA_test(
         elif args['model_name'] == 'tfr_net':
             input_mask = torch.tensor(feature['text_bert'][1]).unsqueeze(0).to(device)
             output, _ = model((text, text, None), (audio, audio, input_mask, None), (vision, vision, input_mask, None))
+        elif args['model_name'] == 'mmlatch':
+            lengths = {}
+            lengths['text'] = torch.tensor(
+                [feature['text'].shape[0]]).to(device)
+            lengths['audio'] = lengths['text']
+            lengths['vision'] = lengths['text']
+            print(lengths)
+            output = model(text, audio, vision, lengths)
         else:
             output = model(text, audio, vision)
         if type(output) == dict:
             output = output['M']
+
+        print(output)
     return output.cpu().detach().numpy()[0][0]
         
 

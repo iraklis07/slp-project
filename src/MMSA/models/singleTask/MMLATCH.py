@@ -2,6 +2,8 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch.utils.checkpoint import checkpoint
@@ -397,8 +399,33 @@ class FeedbackUnit(nn.Module):
 
     def forward(self, x, y, z, lengths=None):
         mask = self.get_mask(y, z, lengths=lengths)
+        # ==== Added for the project =====
+        print(mask)
+        print(mask.shape)
+        idx_to_keep = [i for i, f in enumerate(x.squeeze()) if f.any()]
+        if self.mod1_sz == 35:
+            print(x)
+            x_to_plot = x.squeeze().cpu()
+            #sns.heatmap(x_to_plot, square=True)
+            #plt.show()
+
+            print(idx_to_keep)
+            mask_to_plot = mask.squeeze()[idx_to_keep].cpu()
+            sns.heatmap(mask_to_plot, square=True)
+            plt.show()
+            #fig = plt.gcf()
+            #fig.savefig("/home/iraklis/ece/slp/project/figures/vision_mask.png")
+        # ================================
         mask = F.dropout(mask, p=0.2)
         x_new = x * mask
+
+        # ===== Added for the project =====
+        if self.mod1_sz == 35:
+            diff_x = x_new-x
+            x_new_to_plot = torch.abs(diff_x).squeeze()[idx_to_keep].cpu()
+            sns.heatmap(x_new_to_plot, square=True, vmin=0, vmax=2)
+            plt.show()
+        # =================================
 
         return x_new
 
@@ -438,8 +465,11 @@ class Feedback(nn.Module):
         )
 
     def forward(self, low_x, low_y, low_z, hi_x, hi_y, hi_z, lengths=None):
+        #print(f"\nText Mask:")
         x = self.f1(low_x, hi_y, hi_z, lengths=[lengths['audio'], lengths['vision']])
+        #print(f"\nAudio Mask:")
         y = self.f2(low_y, hi_x, hi_z, lengths=[lengths['text'], lengths['vision']])
+        #print(f"\nVision Mask:")
         z = self.f3(low_z, hi_x, hi_y, lengths=[lengths['text'], lengths['audio']])
 
         return x, y, z
